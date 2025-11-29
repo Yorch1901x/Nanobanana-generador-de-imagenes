@@ -1,15 +1,21 @@
+
 import React, { useState } from 'react';
-import { Wand2, Sparkles, Command, Monitor, Smartphone, Square, LayoutTemplate, Lightbulb, ArrowRight, Loader2, MessageSquarePlus } from 'lucide-react';
+import { Wand2, Command, Monitor, Smartphone, Square, LayoutTemplate, Lightbulb, ArrowRight, Loader2, MessageSquarePlus, Zap, Crown } from 'lucide-react';
 import { ImageUploader } from './components/ImageUploader';
 import { ResultDisplay } from './components/ResultDisplay';
-import { ImageFile, AppStatus, GeneratedContent, AspectRatio } from './types';
+import { Header } from './components/Header';
+import { WatermarkSelector } from './components/WatermarkSelector';
+import { ImageFile, AppStatus, GeneratedContent, AspectRatio, GeminiModel } from './types';
 import { generateOrEditImage, generateCreativePrompts } from './services/geminiService';
+import { addWatermark, WatermarkType } from './utils/imageProcessor';
 
 const App: React.FC = () => {
   const [prompt, setPrompt] = useState<string>('');
   const [contentImage, setContentImage] = useState<ImageFile | null>(null);
   const [styleImage, setStyleImage] = useState<ImageFile | null>(null);
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1');
+  const [selectedModel, setSelectedModel] = useState<GeminiModel>('gemini-2.5-flash-image');
+  const [watermarkType, setWatermarkType] = useState<WatermarkType>('none');
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
   const [result, setResult] = useState<GeneratedContent | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -33,11 +39,18 @@ const App: React.FC = () => {
       if (contentImage) images.push({ base64: contentImage.base64, mimeType: contentImage.mimeType });
       if (styleImage) images.push({ base64: styleImage.base64, mimeType: styleImage.mimeType });
 
-      const generatedContent = await generateOrEditImage(
+      let generatedContent = await generateOrEditImage(
         prompt,
         images,
-        aspectRatio
+        aspectRatio,
+        selectedModel
       );
+      
+      // Apply watermark if requested and if an image was generated
+      if (generatedContent.imageUrl && watermarkType !== 'none') {
+        const watermarkedUrl = await addWatermark(generatedContent.imageUrl, watermarkType);
+        generatedContent = { ...generatedContent, imageUrl: watermarkedUrl };
+      }
       
       setResult(generatedContent);
       setStatus(AppStatus.SUCCESS);
@@ -80,21 +93,7 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-[#0f172a] text-slate-50 selection:bg-yellow-500/30">
       
       {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-md bg-[#0f172a]/80 border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="bg-gradient-to-tr from-yellow-400 to-orange-500 p-2 rounded-lg">
-               <Sparkles size={20} className="text-white" />
-            </div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
-              Nano Banana Studio
-            </h1>
-          </div>
-          <div className="text-xs font-medium px-3 py-1 bg-slate-800 rounded-full text-slate-400 border border-slate-700 hidden sm:block">
-            Powered by Gemini 2.5 Flash Image
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <main className="max-w-7xl mx-auto p-4 md:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-full">
@@ -108,6 +107,32 @@ const App: React.FC = () => {
               <p className="text-slate-400 text-sm">
                 Describe what you want to see. Attach references for content or style to guide the generation.
               </p>
+            </div>
+
+            {/* Model Selection */}
+            <div className="bg-slate-900/50 p-1 rounded-xl border border-slate-800 flex relative">
+              <button
+                onClick={() => setSelectedModel('gemini-2.5-flash-image')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                  selectedModel === 'gemini-2.5-flash-image'
+                    ? 'bg-slate-700 text-white shadow-sm ring-1 ring-slate-600'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                }`}
+              >
+                <Zap size={16} className={selectedModel === 'gemini-2.5-flash-image' ? 'text-yellow-400' : ''} />
+                Flash 2.5
+              </button>
+              <button
+                onClick={() => setSelectedModel('gemini-3-pro-image-preview')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                  selectedModel === 'gemini-3-pro-image-preview'
+                    ? 'bg-slate-700 text-white shadow-sm ring-1 ring-slate-600'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                }`}
+              >
+                <Crown size={16} className={selectedModel === 'gemini-3-pro-image-preview' ? 'text-purple-400' : ''} />
+                Pro 3.0
+              </button>
             </div>
 
             {/* Image Upload Section */}
@@ -150,6 +175,13 @@ const App: React.FC = () => {
                 ))}
               </div>
             </div>
+
+            {/* Watermark Selector */}
+            <WatermarkSelector 
+              value={watermarkType}
+              onChange={setWatermarkType}
+              disabled={status === AppStatus.LOADING}
+            />
 
             {/* Prompt Generator Section */}
             <div className="bg-slate-800/40 rounded-xl border border-slate-700/50 overflow-hidden">
@@ -237,7 +269,7 @@ const App: React.FC = () => {
               {status === AppStatus.LOADING ? (
                  <>Generating...</>
               ) : (
-                 <><Wand2 size={20} /> Generate</>
+                 <><Wand2 size={20} /> Generate with {selectedModel === 'gemini-2.5-flash-image' ? 'Flash' : 'Pro'}</>
               )}
             </button>
             

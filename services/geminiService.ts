@@ -1,11 +1,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { GeneratedContent } from "../types";
+import { GeneratedContent, GeminiModel } from "../types";
 
 // Initialize the client
 // CRITICAL: Using process.env.API_KEY as per instructions.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-const MODEL_NAME = 'gemini-2.5-flash-image';
+const DEFAULT_MODEL = 'gemini-2.5-flash-image';
 
 interface ReferenceImage {
   base64: string;
@@ -54,12 +54,14 @@ export const generateCreativePrompts = async (topic: string): Promise<string[]> 
  * @param prompt The text prompt describing the desired image or edit.
  * @param referenceImages Array of reference images (structure or style).
  * @param aspectRatio The desired aspect ratio for the output.
+ * @param modelName The Gemini model to use for generation.
  * @returns A promise resolving to the generated content (image and/or text).
  */
 export const generateOrEditImage = async (
   prompt: string,
   referenceImages: ReferenceImage[] = [],
-  aspectRatio: string = "1:1"
+  aspectRatio: string = "1:1",
+  modelName: GeminiModel = DEFAULT_MODEL
 ): Promise<GeneratedContent> => {
   
   try {
@@ -81,7 +83,7 @@ export const generateOrEditImage = async (
     });
 
     const response = await ai.models.generateContent({
-      model: MODEL_NAME,
+      model: modelName,
       contents: {
         parts: parts,
       },
