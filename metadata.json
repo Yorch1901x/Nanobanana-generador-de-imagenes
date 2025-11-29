@@ -1,0 +1,5 @@
+{
+  "name": "Nano Banana Creative Studio",
+  "description": "A powerful AI image editor and generator powered by Gemini 2.5 Flash Image (Nano Banana). Upload images to edit them with text prompts or generate new ones from scratch.",
+  "requestFramePermissions": []
+}
