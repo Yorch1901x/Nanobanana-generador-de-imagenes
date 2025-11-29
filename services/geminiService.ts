@@ -39,12 +39,15 @@ export const generateCreativePrompts = async (topic: string): Promise<string[]> 
     });
 
     if (response.text) {
-       return JSON.parse(response.text);
+       // Clean up the response in case it includes markdown formatting
+       const cleanText = response.text.replace(/```json\n?|```/g, '').trim();
+       return JSON.parse(cleanText);
     }
     return [];
   } catch (error) {
     console.error("Prompt generation error:", error);
-    return ["Failed to generate ideas. Please try again."];
+    // Return an empty array instead of an error string to prevent UI confusion
+    return [];
   }
 };
 
@@ -104,7 +107,6 @@ export const generateOrEditImage = async (
           const base64Data = part.inlineData.data;
           // The API doesn't always explicitly return the mimeType in the inlineData response part in all SDK versions effectively,
           // but usually it's a PNG or JPEG. We construct a data URI.
-          // Note: The SDK types say `part.inlineData.mimeType` exists.
           const respMime = part.inlineData.mimeType || 'image/png'; 
           imageUrl = `data:${respMime};base64,${base64Data}`;
         } else if (part.text) {

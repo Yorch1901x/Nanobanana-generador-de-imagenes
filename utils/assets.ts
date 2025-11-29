@@ -1,7 +1,9 @@
 
 // Helper to safely encode SVG for data URIs without using btoa (which can fail with unicode)
+// Also trims newlines to ensure cleaner Data URIs
 export const getSvgUrl = (svgString: string) => {
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
+  const cleanSvg = svgString.trim().replace(/\n/g, ' ').replace(/\s+/g, ' ');
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(cleanSvg)}`;
 }
 
 const PRIMARY_COLOR = "#312E81"; // Indigo 900
